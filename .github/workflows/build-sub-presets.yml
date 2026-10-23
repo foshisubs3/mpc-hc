@@ -1,0 +1,48 @@
+name: Build MPC-HC (subtitle presets)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install NASM
+        shell: pwsh
+        run: |
+          choco install nasm -y --no-progress
+          "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Write build.user.bat (newest Windows 10/11 SDK on the runner)
+        shell: pwsh
+        run: |
+          $sdk = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -Directory |
+                 Where-Object { $_.Name -match '^10\.' } | Sort-Object { [version]$_.Name } | Select-Object -Last 1
+          Write-Host "Using Windows SDK $($sdk.Name)"
+          "@ECHO OFF`r`nSET `"MPCHC_WINSDK_VER=$($sdk.Name)`"`r`n" | Out-File -FilePath build.user.bat -Encoding ascii
+
+      - name: Build player (x64, Release)
+        shell: cmd
+        run: call build.bat Build x64 Main Release Silent
+
+      - name: Show build logs on failure
+        if: failure()
+        shell: pwsh
+        run: Get-ChildItem bin\logs -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "===== $($_.FullName)"; Get-Content $_.FullName -Tail 200 }
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc64-sub-presets
+          path: |
+            bin/mpc-hc_x64/
+            !bin/mpc-hc_x64/**/*.pdb
+          if-no-files-found: error

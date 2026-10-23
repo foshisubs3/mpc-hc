@@ -842,6 +842,39 @@ public:
     // Default Style
     STSStyle        subtitlesDefStyle;
 
+    // Subtitle style presets, picked from the toolbar button next to the volume.
+    // Preset 0 ("Normal") is the regular settings above, untouched.
+    enum {
+        SUB_PRESET_NORMAL = 0,
+        SUB_PRESET_MOVIES = 1,
+        SUB_PRESET_ANIME = 2,
+        SUB_PRESET_COUNT = 3
+    };
+    int             nSubStylePreset = SUB_PRESET_NORMAL;
+    STSStyle        subStylePresetStyle[SUB_PRESET_COUNT];                       // [0] unused
+    bool            bSubStylePresetOverrideDefault[SUB_PRESET_COUNT] = { false, true, true };  // [0] unused
+    bool            bSubStylePresetOverrideAll[SUB_PRESET_COUNT] = { false, false, false };    // [0] unused
+
+    // Style / override flags of the preset in use (the normal ones when the preset is "Normal")
+    STSStyle& ActiveSubStyle() {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? subtitlesDefStyle : subStylePresetStyle[nSubStylePreset];
+    }
+    const STSStyle& ActiveSubStyle() const {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? subtitlesDefStyle : subStylePresetStyle[nSubStylePreset];
+    }
+    bool& ActiveSubOverrideDefault() {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideDefaultStyle : bSubStylePresetOverrideDefault[nSubStylePreset];
+    }
+    bool ActiveSubOverrideDefault() const {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideDefaultStyle : bSubStylePresetOverrideDefault[nSubStylePreset];
+    }
+    bool& ActiveSubOverrideAll() {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideAllStyles : bSubStylePresetOverrideAll[nSubStylePreset];
+    }
+    bool ActiveSubOverrideAll() const {
+        return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideAllStyles : bSubStylePresetOverrideAll[nSubStylePreset];
+    }
+
     // Misc
     bool            bPreferDefaultForcedSubtitles;
     bool            fPrioritizeExternalSubtitles;

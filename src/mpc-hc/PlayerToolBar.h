@@ -22,6 +22,7 @@
 #pragma once
 
 #include "VolumeCtrl.h"
+#include "SubStylePresetButton.h"
 #include "CMPCThemeToolTipCtrl.h"
 #include "CMPCThemeUtil.h"
 #include <atlimage.h>
@@ -115,6 +116,8 @@ public:
     CImage& GetVolumeImageOff() { return volumeOff; };
 
     CVolumeCtrl m_volctrl;
+    CSubStylePresetButton m_subPresetBtn;
+    int m_subPresetBtnWidth = 0;
 
     std::optional<bool> lastFullscreen = std::nullopt;
     void SetFullscreen(bool isFS);

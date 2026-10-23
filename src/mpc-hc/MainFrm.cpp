@@ -54,6 +54,7 @@
 #include "PPageFileInfoSheet.h"
 #include "PPageSheet.h"
 #include "PPageSubStyle.h"
+#include "SubStylePresetButton.h"
 #include "PPageSubtitles.h"
 
 #include "CoverArt.h"
@@ -11157,7 +11158,7 @@ void CMainFrame::OnSubtitlesDefaultStyle()
 {
     CAppSettings& s = AfxGetAppSettings();
     if (!m_pSubStreams.IsEmpty()) {
-        s.bSubtitleOverrideDefaultStyle = !s.bSubtitleOverrideDefaultStyle;
+        s.ActiveSubOverrideDefault() = !s.ActiveSubOverrideDefault();
         UpdateSubtitleRenderingParameters();
         RepaintVideo();
     }
@@ -11167,7 +11168,7 @@ void CMainFrame::OnSubtitlesOverrideStyles()
 {
     CAppSettings& s = AfxGetAppSettings();
     if (!m_pSubStreams.IsEmpty()) {
-        s.bSubtitleOverrideAllStyles = !s.bSubtitleOverrideAllStyles;
+        s.ActiveSubOverrideAll() = !s.ActiveSubOverrideAll();
         UpdateSubtitleRenderingParameters();
         RepaintVideo();
     }
@@ -11248,7 +11249,7 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
                                 STSStyle tmpStyle = *styles[l];
                                 pages[l]->GetStyle(*styles[l]);
                                 if (pages[l]->GetStyleName() == L"Default") {
-                                    if (*styles[l] != s.subtitlesDefStyle) {
+                                    if (*styles[l] != s.ActiveSubStyle()) {
                                         pRTS->m_bUsingPlayerDefaultStyle = false;
                                         pRTS->SetDefaultStyle(*styles[l]);
                                         defaultStyleChanged = true;
@@ -11278,12 +11279,12 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
             ToggleSubtitleOnOff();
         } else if (i == -2) {
             // override default style
-            s.bSubtitleOverrideDefaultStyle = !s.bSubtitleOverrideDefaultStyle;
+            s.ActiveSubOverrideDefault() = !s.ActiveSubOverrideDefault();
             UpdateSubtitleRenderingParameters();
             RepaintVideo();
         } else if (i == -1) {
             // override all styles
-            s.bSubtitleOverrideAllStyles = !s.bSubtitleOverrideAllStyles;
+            s.ActiveSubOverrideAll() = !s.ActiveSubOverrideAll();
             UpdateSubtitleRenderingParameters();
             RepaintVideo();
         } else if (i >= 0) {
@@ -18540,10 +18541,10 @@ void CMainFrame::SetupSubtitlesSubMenu()
             subMenu.EnableMenuItem(nItemsBeforeStart + 5, MF_BYPOSITION | MF_GRAYED);
             subMenu.EnableMenuItem(nItemsBeforeStart + 6, MF_BYPOSITION | MF_GRAYED);
         }
-        if (s.bSubtitleOverrideDefaultStyle) {
+        if (s.ActiveSubOverrideDefault()) {
             subMenu.CheckMenuItem(nItemsBeforeStart + 5, MF_BYPOSITION | MF_CHECKED);
         }
-        if (s.bSubtitleOverrideAllStyles) {
+        if (s.ActiveSubOverrideAll()) {
             subMenu.CheckMenuItem(nItemsBeforeStart + 6, MF_BYPOSITION | MF_CHECKED);
         }
         if (iSelected >= 0) {
@@ -24749,14 +24750,15 @@ bool CMainFrame::ApplySubtitleRenderingParameters(ISubStream* pSubStream, bool b
                 pRTS->m_dPARCompensation = dPARCompensation;
             }
 
-            STSStyle style = s.subtitlesDefStyle;
+            const STSStyle& activeStyle = s.ActiveSubStyle(); // style of the selected toolbar preset
+            STSStyle style = activeStyle;
             if (pRTS->m_bUsingPlayerDefaultStyle) {
                 pRTS->SetDefaultStyle(style);
-            } else if (pRTS->GetDefaultStyle(style) && style.relativeTo == STSStyle::AUTO && s.subtitlesDefStyle.relativeTo != STSStyle::AUTO) {
-                style.relativeTo = s.subtitlesDefStyle.relativeTo;
+            } else if (pRTS->GetDefaultStyle(style) && style.relativeTo == STSStyle::AUTO && activeStyle.relativeTo != STSStyle::AUTO) {
+                style.relativeTo = activeStyle.relativeTo;
                 pRTS->SetDefaultStyle(style);
             }
-            pRTS->SetOverride(s.bSubtitleOverrideDefaultStyle, s.bSubtitleOverrideAllStyles, s.subtitlesDefStyle);
+            pRTS->SetOverride(s.ActiveSubOverrideDefault(), s.ActiveSubOverrideAll(), activeStyle);
             if (bSecondary) {
                 // the secondary subtitle track is always anchored to the top of the frame
                 pRTS->SetAlignment(true, s.nHorPos, s.nSecondarySubVerPos, true);
@@ -24790,6 +24792,50 @@ void CMainFrame::UpdateSubtitleRenderingParameters()
     }
     if (bInvalidate) {
         m_pCAP->Invalidate();
+    }
+}
+
+void CMainFrame::ApplySubStylePresetChange(bool bSave)
+{
+    if (!m_pSubStreams.IsEmpty()) {
+        UpdateSubtitleRenderingParameters();
+        RepaintVideo();
+    }
+    m_wndToolBar.m_subPresetBtn.Refresh();
+    if (bSave) {
+        AfxGetAppSettings().SaveSettings();
+    }
+}
+
+void CMainFrame::SetSubStylePreset(int idx)
+{
+    CAppSettings& s = AfxGetAppSettings();
+    if (idx < CAppSettings::SUB_PRESET_NORMAL || idx >= CAppSettings::SUB_PRESET_COUNT || idx == s.nSubStylePreset) {
+        return;
+    }
+    s.nSubStylePreset = idx;
+    ApplySubStylePresetChange(true);
+    m_OSD.DisplayMessage(OSD_TOPLEFT, CSubStylePresetButton::PresetName(idx));
+}
+
+void CMainFrame::EditSubStylePreset(int idx)
+{
+    CAppSettings& s = AfxGetAppSettings();
+    if (idx <= CAppSettings::SUB_PRESET_NORMAL || idx >= CAppSettings::SUB_PRESET_COUNT) {
+        return;
+    }
+
+    CString name = CSubStylePresetButton::PresetName(idx);
+    CPPageSubStyle page(/*isStyleDialog = */ true);
+    page.InitStyle(name, s.subStylePresetStyle[idx]);
+
+    CMPCThemePropertySheet dlg(name, GetModalParent());
+    dlg.AddPage(&page);
+    if (dlg.DoModal() == IDOK) {
+        page.GetStyle(s.subStylePresetStyle[idx]);
+        // editing a preset also switches to it, so the result is visible right away
+        s.nSubStylePreset = idx;
+        ApplySubStylePresetChange(true);
     }
 }
 

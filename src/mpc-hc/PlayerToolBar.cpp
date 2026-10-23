@@ -440,6 +440,8 @@ BOOL CPlayerToolBar::Create(CWnd* pParentWnd)
     m_volctrl.Create(this);
     m_volctrl.SetRange(0, 100);
 
+    m_subPresetBtn.Create(this, m_pMainFrame);
+
     m_nButtonHeight = 16; // reset m_nButtonHeight
 
     LoadToolbarImage();
@@ -625,7 +627,11 @@ void CPlayerToolBar::ArrangeControls() {
 
     int groupSpacing = CalculateGroupSpacing(volumeButtonWidth);
 
-    int totalContentWidth = dynamicButtonsWidth + volumeButtonWidth + m_volumeCtrlSize;
+    // The subtitle preset button sits inside the space of the dummy separator, right before the mute button
+    m_subPresetBtnWidth = ::IsWindow(m_subPresetBtn.m_hWnd) ? m_subPresetBtn.GetIdealWidth() : 0;
+    int presetReserve = m_subPresetBtnWidth > 0 ? m_subPresetBtnWidth + groupSpacing : 0;
+
+    int totalContentWidth = dynamicButtonsWidth + volumeButtonWidth + m_volumeCtrlSize + presetReserve;
     int totalAvailableSpace = r.Width();
 
     int leftSpacing = 0;
@@ -639,11 +645,11 @@ void CPlayerToolBar::ArrangeControls() {
                 int availableSeparatorSpace = totalAvailableSpace - totalContentWidth - 2 * groupSpacing;
                 int centerOffset = availableSeparatorSpace / 2;
                 leftSpacing = std::max(0, centerOffset);
-                rightSpacing = groupSpacing;
+                rightSpacing = groupSpacing + presetReserve;
             }
             break;
         case 2: // Right alignment
-            rightSpacing = groupSpacing;
+            rightSpacing = groupSpacing + presetReserve;
             leftSpacing = totalAvailableSpace - dynamicButtonsWidth - rightSpacing - volumeButtonWidth - groupSpacing - m_volumeCtrlSize;
             leftSpacing = std::max(0, leftSpacing);
             break;
@@ -651,7 +657,7 @@ void CPlayerToolBar::ArrangeControls() {
         default:
             leftSpacing = 0;
             rightSpacing = totalAvailableSpace - dynamicButtonsWidth - volumeButtonWidth - groupSpacing - m_volumeCtrlSize;
-            rightSpacing = std::max(groupSpacing, rightSpacing);
+            rightSpacing = std::max(groupSpacing + presetReserve, rightSpacing);
             break;
     }
 
@@ -660,6 +666,18 @@ void CPlayerToolBar::ArrangeControls() {
 
     CRect vr = CRect(volumeSliderLeft, vrTop, volumeSliderLeft + m_volumeCtrlSize, vrBottom);
     m_volctrl.MoveWindow(vr);
+
+    if (m_subPresetBtnWidth > 0) {
+        int muteButtonLeft = muteButtonRight - volumeButtonWidth;
+        int presetRight = muteButtonLeft - groupSpacing / 2;
+        CRect pr(presetRight - m_subPresetBtnWidth, rVolumeButton.top, presetRight, rVolumeButton.bottom);
+        if (pr.Height() <= 0) {
+            pr.top = r.top + 2;
+            pr.bottom = r.bottom - 2;
+        }
+        m_subPresetBtn.MoveWindow(pr);
+        m_subPresetBtn.Invalidate();
+    }
 
     SetSeparatorWidth(leftSeparatorIndex, leftSpacing);
     SetSeparatorWidth(dummySeparatorIndex, rightSpacing);
@@ -731,7 +749,8 @@ int CPlayerToolBar::GetMinWidth() const
 
     int groupSpacing = CalculateGroupSpacing(m_nButtonHeight + TOOLBAR_BUTTON_HORIZONTAL_PADDING);
 
-    return buttonCount * (m_nButtonHeight + 1 + TOOLBAR_BUTTON_HORIZONTAL_PADDING) + 2 * groupSpacing + m_volumeCtrlSize;
+    return buttonCount * (m_nButtonHeight + 1 + TOOLBAR_BUTTON_HORIZONTAL_PADDING) + 2 * groupSpacing + m_volumeCtrlSize
+           + (m_subPresetBtnWidth > 0 ? m_subPresetBtnWidth + groupSpacing : 0);
 }
 
 void CPlayerToolBar::SetVolume(int volume)

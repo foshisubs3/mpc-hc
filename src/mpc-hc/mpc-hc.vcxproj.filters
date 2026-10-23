@@ -220,6 +220,9 @@
     <ClCompile Include="PlayerToolBar.cpp">
       <Filter>Toolbars</Filter>
     </ClCompile>
+    <ClCompile Include="SubStylePresetButton.cpp">
+      <Filter>Toolbars</Filter>
+    </ClCompile>
     <ClCompile Include="PnSPresetsDlg.cpp">
       <Filter>Modal Dialogs</Filter>
     </ClCompile>
@@ -791,6 +794,9 @@
       <Filter>Custom Controls</Filter>
     </ClInclude>
     <ClInclude Include="PlayerToolBar.h">
+      <Filter>Toolbars</Filter>
+    </ClInclude>
+    <ClInclude Include="SubStylePresetButton.h">
       <Filter>Toolbars</Filter>
     </ClInclude>
     <ClInclude Include="PnSPresetsDlg.h">

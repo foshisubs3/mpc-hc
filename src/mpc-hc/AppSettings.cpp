@@ -1059,6 +1059,17 @@ void CAppSettings::SaveSettings(bool write_full_history /* = false */)
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_CLOSEDCAPTIONS, fClosedCaptions);
     CString style;
     pApp->WriteProfileString(IDS_R_SETTINGS, IDS_RS_SPSTYLE, style <<= subtitlesDefStyle);
+    pApp->WriteProfileInt(IDS_R_SETTINGS, _T("SubStylePreset"), nSubStylePreset);
+    for (int i = SUB_PRESET_MOVIES; i < SUB_PRESET_COUNT; i++) {
+        CString key;
+        key.Format(_T("SubStylePresetStyle%d"), i);
+        CString presetStyle;
+        pApp->WriteProfileString(IDS_R_SETTINGS, key, presetStyle <<= subStylePresetStyle[i]);
+        key.Format(_T("SubStylePresetOverrideDefault%d"), i);
+        pApp->WriteProfileInt(IDS_R_SETTINGS, key, bSubStylePresetOverrideDefault[i]);
+        key.Format(_T("SubStylePresetOverrideAll%d"), i);
+        pApp->WriteProfileInt(IDS_R_SETTINGS, key, bSubStylePresetOverrideAll[i]);
+    }
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_SPOVERRIDEPLACEMENT, fOverridePlacement);
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_SPHORPOS, nHorPos);
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_SPVERPOS, nVerPos);
@@ -1918,6 +1929,25 @@ void CAppSettings::LoadSettings()
         if (temp.IsEmpty()) { // Position the text subtitles relative to the video frame by default
             subtitlesDefStyle.relativeTo = STSStyle::AUTO;
         }
+    }
+    nSubStylePreset = pApp->GetProfileInt(IDS_R_SETTINGS, _T("SubStylePreset"), SUB_PRESET_NORMAL);
+    if (nSubStylePreset < SUB_PRESET_NORMAL || nSubStylePreset >= SUB_PRESET_COUNT) {
+        nSubStylePreset = SUB_PRESET_NORMAL;
+    }
+    for (int i = SUB_PRESET_MOVIES; i < SUB_PRESET_COUNT; i++) {
+        CString key;
+        key.Format(_T("SubStylePresetStyle%d"), i);
+        CString temp = pApp->GetProfileString(IDS_R_SETTINGS, key);
+        if (temp.IsEmpty()) {
+            // never edited yet: start from the normal default style
+            subStylePresetStyle[i] = subtitlesDefStyle;
+        } else {
+            subStylePresetStyle[i] <<= temp;
+        }
+        key.Format(_T("SubStylePresetOverrideDefault%d"), i);
+        bSubStylePresetOverrideDefault[i] = !!pApp->GetProfileInt(IDS_R_SETTINGS, key, TRUE);
+        key.Format(_T("SubStylePresetOverrideAll%d"), i);
+        bSubStylePresetOverrideAll[i] = !!pApp->GetProfileInt(IDS_R_SETTINGS, key, FALSE);
     }
     fOverridePlacement = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SPOVERRIDEPLACEMENT, FALSE);
     nHorPos = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SPHORPOS, 50);
@@ -4213,9 +4243,9 @@ UINT CAppSettings::GetSavedPlayListPosition(CStringW playlistPath) {
 SubRendererSettings GetSubRendererSettings() {
     const auto& s = AfxGetAppSettings();
     SubRendererSettings srs;
-    srs.defaultStyle = s.subtitlesDefStyle;
-    srs.overrideDefaultStyle = s.bSubtitleOverrideDefaultStyle || s.bSubtitleOverrideAllStyles;
-    srs.overrideAllStyles = s.bSubtitleOverrideAllStyles;
+    srs.defaultStyle = s.ActiveSubStyle();
+    srs.overrideDefaultStyle = s.ActiveSubOverrideDefault() || s.ActiveSubOverrideAll();
+    srs.overrideAllStyles = s.ActiveSubOverrideAll();
 #if USE_LIBASS
     srs.renderSSAUsingLibass = s.bRenderSSAUsingLibass;
     srs.renderSRTUsingLibass = s.bRenderSRTUsingLibass;
