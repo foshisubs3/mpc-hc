@@ -837,6 +837,16 @@ void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c)
     dc.Detach();
 }
 
+void CPlayerToolBar::ExcludeSubPresetBtn(CDC& dc)
+{
+    if (::IsWindow(m_subPresetBtn.m_hWnd) && m_subPresetBtn.IsWindowVisible()) {
+        CRect br;
+        m_subPresetBtn.GetWindowRect(&br);
+        ScreenToClient(&br);
+        dc.ExcludeClipRect(&br);
+    }
+}
+
 void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
 {
     LPNMTBCUSTOMDRAW pTBCD = reinterpret_cast<LPNMTBCUSTOMDRAW>(pNMHDR);
@@ -845,12 +855,16 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
             m_volctrl.Invalidate();
+            if (::IsWindow(m_subPresetBtn.m_hWnd)) {
+                m_subPresetBtn.Invalidate();
+            }
             lr = CDRF_DODEFAULT;
             break;
         case CDDS_PREPAINT: {
             // paint the control background, this is needed for XP
             CDC dc;
             dc.Attach(pTBCD->nmcd.hdc);
+            ExcludeSubPresetBtn(dc);
             RECT r;
             GetClientRect(&r);
             if (AppIsThemeLoaded()) {
@@ -882,6 +896,9 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             // paint over the separators to hide them
             CDC dc;
             dc.Attach(pTBCD->nmcd.hdc);
+            // the subtitle preset button lives inside the dummy separator, don't paint over it
+            int savedDC = dc.SaveDC();
+            ExcludeSubPresetBtn(dc);
             RECT r;
             GetItemRect(dummySeparatorIndex, &r);
             if (AppIsThemeLoaded()) {
@@ -896,6 +913,7 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
+            dc.RestoreDC(savedDC);
             dc.Detach();
             lr |= CDRF_SKIPDEFAULT;
             break;
