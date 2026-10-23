@@ -4,6 +4,13 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: sub-presets-build
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-2022
@@ -46,3 +53,13 @@ jobs:
             bin/mpc-hc_x64/
             !bin/mpc-hc_x64/**/*.pdb
           if-no-files-found: error
+
+      - name: Publish as release "sub-presets-latest"
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Remove-Item bin\mpc-hc_x64\*.pdb -Recurse -ErrorAction SilentlyContinue
+          Compress-Archive -Path bin\mpc-hc_x64\* -DestinationPath mpc-hc64-sub-presets.zip -Force
+          gh release delete sub-presets-latest --yes --cleanup-tag 2>$null
+          gh release create sub-presets-latest mpc-hc64-sub-presets.zip --target $env:GITHUB_SHA --title "MPC-HC sub-presets ($($env:GITHUB_SHA.Substring(0,7)))" --notes "Automatic build of the sub-presets branch." --prerelease
