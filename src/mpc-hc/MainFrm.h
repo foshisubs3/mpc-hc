@@ -884,6 +884,7 @@ public:
     void SetSubStylePreset(int idx);
     void EditSubStylePreset(int idx);
     void ApplySubStylePresetChange(bool bSave);
+    CString GetDetectedMainSubStyle();
     HRESULT InsertTextPassThruFilter(IBaseFilter* pBF, IPin* pPin, IPin* pPinto);
 
     void SetAudioTrackIdx(int index);

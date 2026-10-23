@@ -24758,7 +24758,7 @@ bool CMainFrame::ApplySubtitleRenderingParameters(ISubStream* pSubStream, bool b
                 style.relativeTo = activeStyle.relativeTo;
                 pRTS->SetDefaultStyle(style);
             }
-            pRTS->SetOverride(s.ActiveSubOverrideDefault(), s.ActiveSubOverrideAll(), activeStyle);
+            pRTS->SetOverride(s.ActiveSubOverrideDefault(), s.ActiveSubOverrideAll(), activeStyle, s.ActiveSubAutoMain());
             if (bSecondary) {
                 // the secondary subtitle track is always anchored to the top of the frame
                 pRTS->SetAlignment(true, s.nHorPos, s.nSecondarySubVerPos, true);
@@ -24805,6 +24805,18 @@ void CMainFrame::ApplySubStylePresetChange(bool bSave)
     if (bSave) {
         AfxGetAppSettings().SaveSettings();
     }
+}
+
+CString CMainFrame::GetDetectedMainSubStyle()
+{
+    CString name;
+    if (auto pRTS = dynamic_cast<CRenderedTextSubtitle*>((ISubStream*)m_pCurrentSubInput.pSubStream)) {
+        CAutoLock cAutoLock(&m_csSubLock);
+        if (pRTS->m_subtitleType == Subtitle::ASS || pRTS->m_subtitleType == Subtitle::SSA) {
+            name = pRTS->DetectMainStyle();
+        }
+    }
+    return name;
 }
 
 void CMainFrame::SetSubStylePreset(int idx)

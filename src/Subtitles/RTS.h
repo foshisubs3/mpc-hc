@@ -519,7 +519,7 @@ public:
     virtual void Empty();
 
     // call to signal this RTS to ignore any of the styles and apply the given override style
-    void SetOverride(bool bOverrideDefault, bool bOverrideAll, const STSStyle& styleOverride);
+    void SetOverride(bool bOverrideDefault, bool bOverrideAll, const STSStyle& styleOverride, bool bAutoMainStyle = false);
  
     void SetUseFreeType(bool useFreeType) { m_bUseFreeType = useFreeType; }
     bool GetUseFreeType() { return m_bUseFreeType; }

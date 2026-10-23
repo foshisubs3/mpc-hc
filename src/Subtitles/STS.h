@@ -105,6 +105,10 @@ public:
     CString m_sYCbCrMatrix;
 
     bool m_bStyleOverrideActive;
+    // "Main style" override: when the main dialogue style of an ASS file is not named Default,
+    // the player style replaces this style instead (empty = not active)
+    CString m_mainStyleOverrideName;
+    STSStyle m_mainStyleOriginal;
     STSStyle m_originalDefaultStyle;
     bool m_bUsingPlayerDefaultStyle;
     uint32_t event_param;
@@ -147,6 +151,8 @@ public:
     void Add(CStringW str, bool fUnicode, REFERENCE_TIME start, REFERENCE_TIME end, CString style = _T("Default"), CString actor = _T(""), CString effect = _T(""), const CRect& marginRect = CRect(0, 0, 0, 0), int layer = 0, int readorder = -1);
     STSStyle* CreateDefaultStyle(int CharSet);
     STSStyle GetOriginalDefaultStyle();
+    // Guess the style used for the normal dialogue lines (most used style, ignoring positioned signs)
+    CString DetectMainStyle() const;
     void ChangeUnknownStylesToDefault();
     void AddStyle(CString name, STSStyle* style); // style will be stored and freed in Empty() later
     bool CopyToStyles(CSTSStyleMap& styles);

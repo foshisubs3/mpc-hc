@@ -1060,6 +1060,11 @@ void CAppSettings::SaveSettings(bool write_full_history /* = false */)
     CString style;
     pApp->WriteProfileString(IDS_R_SETTINGS, IDS_RS_SPSTYLE, style <<= subtitlesDefStyle);
     pApp->WriteProfileInt(IDS_R_SETTINGS, _T("SubStylePreset"), nSubStylePreset);
+    for (int i = SUB_PRESET_NORMAL; i < SUB_PRESET_COUNT; i++) {
+        CString key;
+        key.Format(_T("SubStylePresetAutoMain%d"), i);
+        pApp->WriteProfileInt(IDS_R_SETTINGS, key, bSubStylePresetAutoMain[i]);
+    }
     for (int i = SUB_PRESET_MOVIES; i < SUB_PRESET_COUNT; i++) {
         CString key;
         key.Format(_T("SubStylePresetStyle%d"), i);
@@ -1933,6 +1938,11 @@ void CAppSettings::LoadSettings()
     nSubStylePreset = pApp->GetProfileInt(IDS_R_SETTINGS, _T("SubStylePreset"), SUB_PRESET_NORMAL);
     if (nSubStylePreset < SUB_PRESET_NORMAL || nSubStylePreset >= SUB_PRESET_COUNT) {
         nSubStylePreset = SUB_PRESET_NORMAL;
+    }
+    for (int i = SUB_PRESET_NORMAL; i < SUB_PRESET_COUNT; i++) {
+        CString key;
+        key.Format(_T("SubStylePresetAutoMain%d"), i);
+        bSubStylePresetAutoMain[i] = !!pApp->GetProfileInt(IDS_R_SETTINGS, key, i == SUB_PRESET_ANIME ? TRUE : FALSE);
     }
     for (int i = SUB_PRESET_MOVIES; i < SUB_PRESET_COUNT; i++) {
         CString key;

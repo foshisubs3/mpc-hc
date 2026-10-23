@@ -2037,7 +2037,7 @@ void CRenderedTextSubtitle::Empty()
     __super::Empty();
 }
 
-void CRenderedTextSubtitle::SetOverride(bool bOverrideDefault, bool bOverrideAll, const STSStyle& styleOverride) {
+void CRenderedTextSubtitle::SetOverride(bool bOverrideDefault, bool bOverrideAll, const STSStyle& styleOverride, bool bAutoMainStyle) {
     overrideANSICharset = styleOverride.charSet;
     bool bOverride = bOverrideDefault || bOverrideAll;
     bool changed = (bOverride && !m_bStyleOverrideActive) || (m_SubRendererSettings.overrideDefaultStyle != bOverrideDefault) || (m_SubRendererSettings.overrideAllStyles != bOverrideAll) || bOverride && (m_SubRendererSettings.defaultStyle != styleOverride);
@@ -2075,6 +2075,34 @@ void CRenderedTextSubtitle::SetOverride(bool bOverrideDefault, bool bOverrideAll
             m_LibassContext.StylesChanged();
         }
 #endif
+    }
+
+    // Main style override: the player style goes to the detected main dialogue style
+    // instead of the style called "Default" (which then keeps its own look).
+    CString mainName;
+    if (bAutoMainStyle && bOverrideDefault && !bOverrideAll) {
+        mainName = DetectMainStyle();
+        if (mainName.CompareNoCase(L"Default") == 0) {
+            mainName.Empty();
+        }
+    }
+    if (changed || mainName != m_mainStyleOverrideName) {
+        STSStyle* val;
+        // put back the original of the previously replaced style
+        if (!m_mainStyleOverrideName.IsEmpty() && m_styles.Lookup(m_mainStyleOverrideName, val)) {
+            *val = m_mainStyleOriginal;
+        }
+        m_mainStyleOverrideName.Empty();
+        if (!mainName.IsEmpty() && m_styles.Lookup(mainName, val)) {
+            m_mainStyleOriginal = *val;
+            *val = m_SubRendererSettings.defaultStyle;
+            m_mainStyleOverrideName = mainName;
+            // "Default" is not the dialogue style here, so leave it as the file defines it
+            if (m_styles.Lookup(L"Default", val)) {
+                *val = GetOriginalDefaultStyle();
+            }
+        }
+        SetStyleChanged();
     }
 }
 

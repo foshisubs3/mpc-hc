@@ -25,17 +25,21 @@ namespace
         L"\u0623\u0646\u0645\u064A",                // Anime
     };
     const wchar_t* const kEditPrefix = L"\u062A\u0639\u062F\u064A\u0644 \u0633\u062A\u0627\u064A\u0644 "; // "Edit style: "
-    // "Replace the Default style of ASS files"
-    const wchar_t* const kOverrideDefault = L"\u0627\u0633\u062A\u0628\u062F\u0627\u0644 \u0633\u062A\u0627\u064A\u0644 Default \u0641\u064A \u0645\u0644\u0641\u0627\u062A ASS";
-    // "Replace all styles of ASS files"
-    const wchar_t* const kOverrideAll = L"\u0627\u0633\u062A\u0628\u062F\u0627\u0644 \u0643\u0644 \u0633\u062A\u0627\u064A\u0644\u0627\u062A \u0645\u0644\u0641\u0627\u062A ASS";
+    // ASS handling modes (radio group)
+    const wchar_t* const kModeNone = L"\u0628\u062F\u0648\u0646 \u0627\u0633\u062A\u0628\u062F\u0627\u0644 (\u0633\u062A\u0627\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0643\u0645\u0627 \u0647\u0648)";       // keep the file's styles
+    const wchar_t* const kModeDefault = L"\u0627\u0633\u062A\u0628\u062F\u0627\u0644 \u0633\u062A\u0627\u064A\u0644 Default \u0641\u0642\u0637";    // replace "Default" only
+    const wchar_t* const kModeMain = L"\u0627\u0633\u062A\u0628\u062F\u0627\u0644 \u0627\u0644\u0633\u062A\u0627\u064A\u0644 \u0627\u0644\u0631\u0626\u064A\u0633\u064A \u062A\u0644\u0642\u0627\u0626\u064A\u064B\u0627";       // replace the detected main style
+    const wchar_t* const kModeMainNow = L" (\u0627\u0644\u062D\u0627\u0644\u064A: ";    // " (current: "
+    const wchar_t* const kModeAll = L"\u0627\u0633\u062A\u0628\u062F\u0627\u0644 \u0643\u0644 \u0633\u062A\u0627\u064A\u0644\u0627\u062A ASS";        // replace every style
     const wchar_t* const kArrow = L" \u25BE";
 
     enum {
         CMD_PRESET_FIRST = 1,                                       // 1..3 select a preset
         CMD_EDIT_FIRST = CMD_PRESET_FIRST + CAppSettings::SUB_PRESET_COUNT, // edit preset 1..2
-        CMD_OVERRIDE_DEFAULT = 20,
-        CMD_OVERRIDE_ALL,
+        CMD_MODE_NONE = 20,
+        CMD_MODE_DEFAULT,
+        CMD_MODE_MAIN,
+        CMD_MODE_ALL,
     };
 
     const int kHorzPadding = 8;
@@ -194,8 +198,19 @@ void CSubStylePresetButton::ShowPresetMenu()
         m_menu.AppendMenu(MF_STRING | MF_ENABLED, CMD_EDIT_FIRST + i - 1, CString(kEditPrefix) + PresetName(i) + L"...");
     }
     m_menu.AppendMenu(MF_SEPARATOR);
-    m_menu.AppendMenu(MF_STRING | MF_ENABLED | (s.ActiveSubOverrideDefault() ? MF_CHECKED : MF_UNCHECKED), CMD_OVERRIDE_DEFAULT, kOverrideDefault);
-    m_menu.AppendMenu(MF_STRING | MF_ENABLED | (s.ActiveSubOverrideAll() ? MF_CHECKED : MF_UNCHECKED), CMD_OVERRIDE_ALL, kOverrideAll);
+    CString mainLabel = kModeMain;
+    CString detected = m_pMainFrame->GetDetectedMainSubStyle();
+    if (!detected.IsEmpty()) {
+        mainLabel += CString(kModeMainNow) + detected + L")";
+    }
+    m_menu.AppendMenu(MF_STRING | MF_ENABLED, CMD_MODE_NONE, kModeNone);
+    m_menu.AppendMenu(MF_STRING | MF_ENABLED, CMD_MODE_DEFAULT, kModeDefault);
+    m_menu.AppendMenu(MF_STRING | MF_ENABLED, CMD_MODE_MAIN, mainLabel);
+    m_menu.AppendMenu(MF_STRING | MF_ENABLED, CMD_MODE_ALL, kModeAll);
+    UINT mode = s.ActiveSubOverrideAll() ? CMD_MODE_ALL
+                : !s.ActiveSubOverrideDefault() ? CMD_MODE_NONE
+                : s.ActiveSubAutoMain() ? CMD_MODE_MAIN : CMD_MODE_DEFAULT;
+    m_menu.CheckMenuRadioItem(CMD_MODE_NONE, CMD_MODE_ALL, mode, MF_BYCOMMAND);
 
     if (AppIsThemeLoaded()) {
         m_menu.fulfillThemeReqs();
@@ -213,11 +228,10 @@ void CSubStylePresetButton::ShowPresetMenu()
         m_pMainFrame->SetSubStylePreset((int)(cmd - CMD_PRESET_FIRST));
     } else if (cmd >= CMD_EDIT_FIRST && cmd < CMD_EDIT_FIRST + (UINT)(CAppSettings::SUB_PRESET_COUNT - 1)) {
         m_pMainFrame->EditSubStylePreset((int)(cmd - CMD_EDIT_FIRST) + 1);
-    } else if (cmd == CMD_OVERRIDE_DEFAULT) {
-        s.ActiveSubOverrideDefault() = !s.ActiveSubOverrideDefault();
-        m_pMainFrame->ApplySubStylePresetChange(true);
-    } else if (cmd == CMD_OVERRIDE_ALL) {
-        s.ActiveSubOverrideAll() = !s.ActiveSubOverrideAll();
+    } else if (cmd >= CMD_MODE_NONE && cmd <= CMD_MODE_ALL) {
+        s.ActiveSubOverrideAll() = (cmd == CMD_MODE_ALL);
+        s.ActiveSubOverrideDefault() = (cmd == CMD_MODE_DEFAULT || cmd == CMD_MODE_MAIN);
+        s.ActiveSubAutoMain() = (cmd == CMD_MODE_MAIN);
         m_pMainFrame->ApplySubStylePresetChange(true);
     }
 }

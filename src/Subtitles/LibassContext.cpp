@@ -711,7 +711,8 @@ void LibassContext::StylesChanged() {
             m_bOverrideAllStylesActive = true;
         } else if (m_STS->m_SubRendererSettings.overrideDefaultStyle) {
             STSStyle defStyle = m_STS->m_SubRendererSettings.defaultStyle;
-            detect_style_changes(nullptr, &defStyle, L"Default", styles_overrides);
+            const wchar_t* target = m_STS->m_mainStyleOverrideName.IsEmpty() ? L"Default" : m_STS->m_mainStyleOverrideName.GetString();
+            detect_style_changes(nullptr, &defStyle, target, styles_overrides);
             m_bOverrideDefaultStyleActive = true;
         } else if (m_bOverrideDefaultStyleActive) {
             // this is the original default style

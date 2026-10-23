@@ -854,6 +854,8 @@ public:
     STSStyle        subStylePresetStyle[SUB_PRESET_COUNT];                       // [0] unused
     bool            bSubStylePresetOverrideDefault[SUB_PRESET_COUNT] = { false, true, true };  // [0] unused
     bool            bSubStylePresetOverrideAll[SUB_PRESET_COUNT] = { false, false, false };    // [0] unused
+    // replace the detected main dialogue style instead of the style named "Default" ([0] = Normal)
+    bool            bSubStylePresetAutoMain[SUB_PRESET_COUNT] = { false, false, true };
 
     // Style / override flags of the preset in use (the normal ones when the preset is "Normal")
     STSStyle& ActiveSubStyle() {
@@ -870,6 +872,12 @@ public:
     }
     bool& ActiveSubOverrideAll() {
         return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideAllStyles : bSubStylePresetOverrideAll[nSubStylePreset];
+    }
+    bool& ActiveSubAutoMain() {
+        return bSubStylePresetAutoMain[nSubStylePreset];
+    }
+    bool ActiveSubAutoMain() const {
+        return bSubStylePresetAutoMain[nSubStylePreset];
     }
     bool ActiveSubOverrideAll() const {
         return nSubStylePreset == SUB_PRESET_NORMAL ? bSubtitleOverrideAllStyles : bSubStylePresetOverrideAll[nSubStylePreset];

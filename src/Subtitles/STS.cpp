@@ -2539,6 +2539,7 @@ void CSimpleTextSubtitle::Empty()
     m_styles.Free();
     m_segments.RemoveAll();
     RemoveAll();
+    m_mainStyleOverrideName.Empty();
 }
 
 static bool SegmentCompStart(const STSSegment& segment, REFERENCE_TIME start)
@@ -2707,6 +2708,72 @@ STSStyle* CSimpleTextSubtitle::CreateDefaultStyle(int CharSet)
 STSStyle CSimpleTextSubtitle::GetOriginalDefaultStyle()
 {
     return m_originalDefaultStyle;
+}
+
+CString CSimpleTextSubtitle::DetectMainStyle() const
+{
+    // 1) when enough lines are known, the style with the most unpositioned lines wins
+    CAtlMap<CString, size_t, CStringElementTraits<CString>> counts;
+    size_t total = 0;
+    for (size_t i = 0; i < GetCount(); i++) {
+        const STSEntry& e = GetAt(i);
+        if (e.str.Find(L"\\pos(") >= 0 || e.str.Find(L"\\move(") >= 0 || e.str.Find(L"\\p1") >= 0) {
+            continue; // signs and drawings
+        }
+        size_t c = 0;
+        counts.Lookup(e.style, c);
+        counts.SetAt(e.style, c + 1);
+        total++;
+    }
+    if (total >= 20) {
+        CString best;
+        size_t bestCount = 0;
+        POSITION pos = counts.GetStartPosition();
+        while (pos) {
+            CString name;
+            size_t c;
+            counts.GetNextAssoc(pos, name, c);
+            if (c > bestCount || (c == bestCount && name.CompareNoCase(L"Default") == 0)) {
+                best = name;
+                bestCount = c;
+            }
+        }
+        STSStyle* dummy;
+        if (!best.IsEmpty() && m_styles.Lookup(best, dummy)) {
+            return best;
+        }
+    }
+
+    // 2) not enough lines yet (embedded tracks arrive while playing): go by the usual names
+    static const wchar_t* const exactNames[] = {
+        L"Default", L"Main", L"Dialogue", L"Dialog", L"Main Dialogue", L"Main Dialog", L"Text", L"Sub", L"Subtitle", L"Normal"
+    };
+    for (const wchar_t* n : exactNames) {
+        POSITION pos = m_styles.GetStartPosition();
+        while (pos) {
+            CString name;
+            STSStyle* st;
+            m_styles.GetNextAssoc(pos, name, st);
+            if (name.CompareNoCase(n) == 0) {
+                return name;
+            }
+        }
+    }
+    static const wchar_t* const partNames[] = { L"main", L"dialog", L"default" };
+    for (const wchar_t* n : partNames) {
+        POSITION pos = m_styles.GetStartPosition();
+        while (pos) {
+            CString name;
+            STSStyle* st;
+            m_styles.GetNextAssoc(pos, name, st);
+            CString lower = name;
+            lower.MakeLower();
+            if (lower.Find(n) >= 0) {
+                return name;
+            }
+        }
+    }
+    return L"Default";
 }
 
 void CSimpleTextSubtitle::ChangeUnknownStylesToDefault()
